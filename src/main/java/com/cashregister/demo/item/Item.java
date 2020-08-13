@@ -15,7 +15,6 @@ public class Item extends BaseEntity {
     @ManyToOne
     private Transaction transaction;
 
-    @OneToOne
     private Product product;
 
     protected Item() {

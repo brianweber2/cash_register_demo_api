@@ -6,9 +6,14 @@ import com.cashregister.demo.product.ProductRepository;
 import com.cashregister.demo.customer.Customer;
 import com.cashregister.demo.customer.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 
 @RestController
 @RequestMapping("/transactions")
@@ -33,7 +38,7 @@ public class TransactionController {
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
-    Transaction create(@RequestBody List<Product> products, @RequestParam("customer_id") Long customerId) {
+    ResponseEntity<Transaction> create(@RequestBody List<Product> products, @RequestParam("customer_id") Long customerId) {
         // Get user
         Optional<Customer> customer = customerRepository.findById(customerId);
 
@@ -43,35 +48,38 @@ public class TransactionController {
             productIds.add(product.getId());
         }
         Iterable<Product> productsFromDb = productRepository.findAllById(productIds);
+        List<Product> products1 = new ArrayList<>();
+        productsFromDb.forEach(products1::add);
+
+        if(products1.size() != productIds.size()) {
+            return ResponseEntity.badRequest().body(null);
+        }
 
         // Calculate product quantity
-        Map<String, Integer> productQuantity = new HashMap<>();
+        Map<Long, Long> productQuantity2 = products.stream()
+                        .collect(groupingBy(Product::getId, counting()));
+
+
+        Map<Long, Integer> productQuantity = new HashMap<>();
         for(Product product : products) {
-            if(productQuantity.containsKey(product.getSku())) {
-                productQuantity.put(product.getSku(), productQuantity.get(product.getSku()) + 1);
+            if(productQuantity.containsKey(product.getId())) {
+                productQuantity.put(product.getId(), productQuantity.get(product.getId()) + 1);
             } else {
-                productQuantity.put(product.getSku(), 1);
+                productQuantity.put(product.getId(), 1);
             }
         }
 
         // Calculate total cost
         double total = 0;
-        boolean hasLoyaltyNumber = customer.get().getLoyaltyNumber().isEmpty();
+        boolean hasLoyaltyNumber = !customer.get().getLoyaltyNumber().isEmpty();
+        Map<Long, Double> productTotal = new HashMap<>();
         for(Product product : productsFromDb) {
             if(hasLoyaltyNumber) {
-               total += product.getDiscountedPrice() * productQuantity.get(product.getSku());
+               total += product.getDiscountedPrice() * productQuantity.get(product.getId());
+                productTotal.put(product.getId(), productQuantity.get(product.getId()) * product.getDiscountedPrice());
             } else {
-                total += product.getDefaultPrice() * productQuantity.get(product.getSku());
-            }
-        }
-
-        // Calculate item total.
-        Map<String, Double> productTotal = new HashMap<>();
-        for(Product product : productsFromDb) {
-            if(hasLoyaltyNumber) {
-            productTotal.put(product.getSku(), productQuantity.get(product.getSku()) * product.getDiscountedPrice());
-            } else {
-                productTotal.put(product.getSku(), productQuantity.get(product.getSku()) * product.getDefaultPrice());
+                total += product.getDefaultPrice() * productQuantity.get(product.getId());
+                productTotal.put(product.getId(), productQuantity.get(product.getId()) * product.getDefaultPrice());
             }
         }
 
@@ -81,11 +89,11 @@ public class TransactionController {
 
         List<Item> items = new ArrayList<>();
         for(Product product : productsFromDb) {
-            Item item = new Item(productTotal.get(product.getSku()), productQuantity.get(product.getSku()), product);
+            Item item = new Item(productTotal.get(product.getId()), productQuantity.get(product.getId()), product);
             items.add(item);
         }
         transaction.setItems(items);
         transactionRepository.save(transaction);
-        return transaction;
+        return ResponseEntity.ok().body(transaction);
     }
 }
