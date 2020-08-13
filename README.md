@@ -35,7 +35,7 @@ curl --request GET \
   --url http://localhost:8080/customers
 ```
 
-Use that ID and place it in the url as a query param:
+Use that ID and place it in the url as a query param to call the create transaction endpoint with a payload of product ids:
 
 ```
 curl --request POST \
@@ -44,45 +44,9 @@ curl --request POST \
   --data '[
 	{
 		"id": 1,
-		"name": "Scott 1000 Septic Safe Toilet Paper",
-		"sku": "6392261230",
-		"defaultPrice": 13.99,
-		"discountedPrice": 9.99
 	},
 	{
 		"id": 2,
-		"sku": "9862865625",
-		"name": "Eggs",
-		"defaultPrice": 4.99,
-		"discountPrice": 3.99
-	},
-	{
-		"id": 3,
-		"sku": "1711712464",
-		"name": "Orange Juice",
-		"defaultPrice": 5.99,
-		"discountPrice": 5.49
-	},
-	{
-		"id": 4,
-		"sku": "2494535318",
-		"name": "Bananas",
-		"defaultPrice": 2.99,
-		"discountPrice": 1.99
-	},
-	{
-		"id": 5,
-		"sku": "2817733627",
-		"name": "Swifter",
-		"defaultPrice": 24.99,
-		"discountPrice": 22.99
-	},
-	{
-		"id": 4,
-		"sku": "2494535318",
-		"name": "Bananas",
-		"defaultPrice": 2.99,
-		"discountPrice": 1.99
-	}
+	} ...
 ]'
 ```
